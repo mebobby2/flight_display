@@ -124,6 +124,7 @@ For example,
 * A private virtual network
 * Can only be accessed via the Load Balancer or the VPN
 * The VPN is configured to only allow traffic to the FlightUpdaterAPI
+* Includes a jumphost where administrators can log in to access machines residing in the private vnet. We use a jumphost to increase security. We only need to harden one machine, the jumphost itself, and none of the other machines because they are not public available. The jumphost will use IP whitelisting to ensure its only accessible from a certain IP range.
 
 ### API Endpoints
 #### Public API
