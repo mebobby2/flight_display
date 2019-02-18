@@ -69,10 +69,11 @@
 * Serves public API requests. Flight schedules and subscribing to push notifications
 * RESTful
 * API versioning done via uri path e.g. host/api/v1/...
-* Use JWT for authentication
+* Use JWT for authentication. No expiration.
 * JSON request/response format
 * NodeJS
 * is within an autoscaling group - scale based on average CPU utilization rate
+* Session-less
 
 #### DB Router
 * Load balances and distribute db queries to master and slave databases
@@ -104,11 +105,13 @@
 * Is configured with the Apple Push Notification private key and the Google Cloud Messaging credentials
 * Listens for flight_status_updated events from the message queue
 * Upon such an event, it will look into the flight_subscriptions table and find all the users subscribed to that flight. It will then go through and load all the devices for all the users, and send a push notifcation to all the devices
+* NodeJS
 
 #### FlightScheduler
 * A worker responsible for populating the flights table
 * It listens for events from the message queue
 * schedule_created - worker will insert a new entries into the flights table.
+* NodeJS
 
 For example,
 1. a schedule was created with departure_time="14:00" and active_on_mon=true, active_on_wed=true, and active_on_fri=true
@@ -132,9 +135,10 @@ For example,
 * POST /api/v1/users - creates a new user. Will return http status 400. Returns a JWT token
 * POST /api/v1/flight_subscriptions - subscribes to a flight for push notifications
 * POST /api/v1/users/id/devices - registers the mobile device for push notifications
+* GET /api/health - used by the load balancer
 
 #### FlightUpdaterAPI
-* POST /api/v1/employees/:id/session - logs into the employee account
+* POST /api/v1/employees/:id/session - logs into the employee account. Returns a JWT token with 8 hour expiration
 * GET api/v1/schedules - views all the schedules for the employee's airline
 * POST/PUT/DELETE api/v1/schedule/:id - creating, modifying, and removing schedules
 * GET api/v1/flights - list all the scheduled flights (where departure_time is NULL or greater than 1 hour ago) for the employee's airline
@@ -160,6 +164,7 @@ For example,
 * Assuming this system will be read-heavy instead of write-heavy. Thus, have gone with a master-slave configuration for the database. This was a conscious decision over using an in-memory cache, such as memcached. The caching strategy (when to warm the cache, when to invalidate etc) seemed more complicated to manage than database replication at this stage.
 * We want to abstract the application code from knowing about the master and slaves, and just believe there is only one database at play. This is why we chose to use a db router, such as MySQL Router to route read requests to the slave and write requests to the master. This increases the architectural complexity but reduces the application code complexity. This also makes adding new database instances easier in the future because we just need to make a configuration change in the db router, and not in each of the app servers themselves.
 * When the status of the flight changes, we update the column *flight_status* of the corresponding row in the *flights* table. It's important to note that we do not track when the status was changed. If the airline requests for information such as, "tell me how long it took for flight XXX to change from BOARDING to DEPARTED", we would not be able to do so. This might be a viable feature in the future, where the airline might want to view such information in their business intelligence platforms.
+* We use JWT tokens to secure our API. To ease development, we chose not to use refresh tokens. This means after our JWT expires, users are forced to re-login. This user experience can be improved iteratively with time
 
 ### Assumptions
 * To update the status of a flight, it is done via a mobile application (e.g. running on an ipad device). An airline personnel managing that particular flight will log into the system, find the flight they are managing, and manually update the flight status at the appropriate times.
