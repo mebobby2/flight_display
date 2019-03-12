@@ -11,7 +11,7 @@
 2. From schedule updater app
 3. From flight status updater app
 4. Customer website where they can check flight statuses (and subscribe to a particular flight)
-5. Must handle spikey traffic from point 3
+5. Must handle spikey traffic from point 4
 
 ### Outbound
 1. Push notifications for customer flight subscriptions
